@@ -1,3 +1,5 @@
+#Uncomment lines 43-44 for adding rects on video maybe can help
+
 import cv2
 import numpy as np
 import argparse
@@ -6,7 +8,6 @@ import time
 ap=argparse.ArgumentParser()
 ap.add_argument("-i", "--input", type=str, help="path to input video (if empty then used webcam)")
 ap.add_argument("-o", "--output", type=str, help="path to output video (optional)")
-#ap.add_argument("-s", "--skip-frames", type=int, default=30, help="number of skip frames between detections") can be used for faster detect if use tacking
 ap.add_argument("-w", "--win-stride", type=str, default="(8, 8)", help="window stride")
 ap.add_argument("-p", "--padding", type=str, default="(16, 16)", help="object padding")
 ap.add_argument("-s", "--scale", type=float, default=1.03, help="image pyramid scale")
@@ -39,9 +40,11 @@ while True:
         fourcc=cv2.VideoWriter_fourcc(*"MJPG")
         writer_neg=cv2.VideoWriter(args["output"] + "ndet.mp4", fourcc, 15, (frame_width, frame_height), True)
     (rects, weights)=hog.detectMultiScale(frame, winStride=win_stride, padding=padding, scale=args["scale"], useMeanshiftGrouping=mean_shift)
-    if rects is not None and writer_pos is not None:
+#    for (x, y, w, h) in rects:
+#        cv2.rectangle(img, (x, y), (x + w, y + h), (0, 255, 0), 2)
+    if not len(rects) == 0 and writer_pos is not None:
         writer_pos.write(img)
-    elif rects is None and writer_neg is not None:
+    elif len(rects) == 0 and writer_neg is not None:
         writer_neg.write(img)
 if writer_pos is not None:
     writer_pos.release()
