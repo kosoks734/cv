@@ -4,12 +4,12 @@ import cv2
 import data
 
 def create_voc(images):
-    det=cv2.ORB.create()
-    bow_kmeans_trainer=cv2.BOWKMeansTrainer(64, (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0), 10, cv2.KMEANS_RANDOM_CENTERS)
+    det=cv2.xfeatures2d.SIFT_create()
+    bow_kmeans_trainer=cv2.BOWKMeansTrainer(1000, (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 10, 1.0), 10, cv2.KMEANS_RANDOM_CENTERS)
 
     print("Detecting and computing descriptors...")
     for img in images:
-        bow_kmeans_trainer.add(np.float32(det.detectAndCompute(img, None)[1]))
+        bow_kmeans_trainer.add(det.detectAndCompute(img, None)[1])
     voc=bow_kmeans_trainer.cluster()
 
     print("Done")

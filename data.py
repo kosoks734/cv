@@ -21,11 +21,11 @@ def get_bow_extractor():
     fs=cv2.FileStorage("Vocabulare.xml", cv2.FILE_STORAGE_READ)
     voc=fs.getNode("voc").mat()
     fs.release()   
-    matcher=cv2.DescriptorMatcher.create(cv2.DescriptorMatcher_BRUTEFORCE_HAMMING)
-    detector=cv2.ORB_create()
-    extractor=cv2.ORB_create()
+    matcher=cv2.DescriptorMatcher.create(cv2.DescriptorMatcher_FLANNBASED)
+    detector=cv2.xfeatures2d.SIFT_create()
+    extractor=cv2.xfeatures2d.SIFT_create()
     bow_extractor=cv2.BOWImgDescriptorExtractor(extractor, matcher)
-    bow_extractor.setVocabulary(np.uint8(voc))
+    bow_extractor.setVocabulary(voc)
 
     print("Done")
 
