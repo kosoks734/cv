@@ -2,14 +2,14 @@ import os
 import cv2 as cv
 import numpy as np
 
-from dataset import Dataset
-from bow import BoW
+from Scripts.dataset import Dataset
+from Scripts.bow import BoW
 
 class Classifier:
     """
     Class for making training and testing in image classification.
     """
-    def __init__(self, bow: BoW):
+    def __init__(self, bow):
         """
         Initialize the Classifier object.
 
@@ -27,40 +27,43 @@ class Classifier:
         Gets path and saves the SVM there.
 
         Args:
-            path (string): Path to directory where needs to save.
+            path (string): Path where needs to save.
 
         Returns:
             void
         """
-        self.svm.save(os.path.join(path, "SVM.xml"))
+        self.svm.save(path)
 
     def load(self, path):
         """
         Gets path and loads the SVM from there.
 
         Args:
-            path (string): Path to directory with SVM.
+            path (string): Path where SVM located.
 
         Returns:
             void
         """
         self.svm.load(path)
 
-    def train(self, dataset: Dataset):
+    def train(self, dataset):
         """
         Gets dataset and train SVM on this
 
         Args:
             dataset (Dataset): The object that stores the information about the dataset.
-        
+
         Returns:
             void
         """
         traindata, trainlabels = dataset.load()
-        traindata = self.bow.extract(traindata)
-        self.svm.train(traindata, cv.ml.ROW_SAMPLE, trainlabels)
 
-    def predict(self, dataset: Dataset):
+        if self.bow is not None:
+            traindata = self.bow.extract(traindata)
+
+        self.svm.trainAuto(np.array(traindata), cv.ml.ROW_SAMPLE, np.array(trainlabels))
+
+    def predict(self, dataset):
         """
         Gets dataset and predict it with trained SVM
 
@@ -71,5 +74,8 @@ class Classifier:
             void
         """
         testdata = dataset.load()[0]
-        testdata = self.bow.extract(testdata)
-        return self.svm.predict(testdata)
+
+        if self.bow is not None:
+            testdata = self.bow.extract(testdata)
+
+        return self.svm.predict(np.array(testdata))

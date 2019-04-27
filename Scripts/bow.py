@@ -6,7 +6,7 @@ class BoW:
     """
     Class for training Bag of Features and computing descriptors.
     """
-    def __init__(self, des_type):
+    def __init__(self, des_name):
         """
         Initialize the Bag of Features object.
 
@@ -16,11 +16,19 @@ class BoW:
         Returns:
             void
         """
-        self.des_type = des_type
-        self.extractor = cv.xfeatures2d.SIFT_create() if des_type == "SIFT" else cv.ORB_create()
+        des_names = {
+            'BRISK': cv.BRISK_create,
+            'ORB': cv.ORB_create,
+            'AKAZE': cv.AKAZE_create,
+            'KAZE': cv.KAZE_create,
+            'SIFT': cv.xfeatures2d.SIFT_create,
+            'SURF': cv.xfeatures2d.SURF_create
+        }
+        self.detector = des_names[des_name]()
+        self.extractor = des_names[des_name]()
         self.bow = None
 
-    def train(self, imgs):
+    def train(self, imgs, n_clusters):
         """
         Gets image list and cluster Bag of Words.
 
@@ -31,15 +39,11 @@ class BoW:
             void
         """
         criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 10, 1.0)
-        bow_trainer = cv.BOWKMeansTrainer(1000, criteria, 10, cv.KMEANS_RANDOM_CENTERS)
+        bow_trainer = cv.BOWKMeansTrainer(n_clusters, criteria, 10, cv.KMEANS_RANDOM_CENTERS)
 
         for img in imgs:
-            des = self.extractor.detectAndCompute(img, None)[1]
-
-            if self.des_type != "SIFT":
-                des = np.float32(des)
-
-            bow_trainer.add(des)
+            des = self.extractor.compute(img, self.detector.detect(img))[1]
+            bow_trainer.add(np.float32(des) if self.detector.descriptorType() == 0 else des)
 
         self.bow = bow_trainer.cluster()
 
@@ -53,25 +57,18 @@ class BoW:
         Returns:
             Numpy array: Descriptors of given set of images.
         """
-        if self.des_type == "SIFT":
-            flann_params = dict(algorithm=1, trees=5)
-            matcher = cv.FlannBasedMatcher(flann_params, {})
-        else:
-            matcher = cv.DescriptorMatcher.create(cv.DescriptorMatcher_BRUTEFORCE_HAMMING)
-
+        matcher = cv.DescriptorMatcher_create(cv.DESCRIPTOR_MATCHER_BRUTEFORCE_HAMMING if self.detector.descriptorType() == 0 else cv.DESCRIPTOR_MATCHER_FLANNBASED)
         bow_extractor = cv.BOWImgDescriptorExtractor(self.extractor, matcher)
-
-        if self.des_type != "SIFT":
-            bow_extractor.setVocabulary(np.uint8(self.bow))
-        else:
-            bow_extractor.setVocabulary(self.bow)
+        bow_extractor.setVocabulary(np.uint8(self.bow) if self.detector.descriptorType() == 0 else self.bow)
 
         des = []
 
         for img in imgs:
-            des.extend(bow_extractor.compute(img, self.extractor.detect(img)))
+            kp = self.detector.detect(img)
+            hist = bow_extractor.compute(img, kp)
+            des.extend(hist)
 
-        return np.array(des)
+        return des
 
     def save(self, path):
         """
@@ -79,12 +76,12 @@ class BoW:
 
         Args:
             bow (numpy float matrix): The Bag of Features.
-            path (string): Path to directory where needs to save.
+            path (string): Path where needs to save.
 
         Returns:
             void
         """
-        file_storage = cv.FileStorage(os.path.join(path, "BoF.xml"), cv.FILE_STORAGE_WRITE)
+        file_storage = cv.FileStorage(path, cv.FILE_STORAGE_WRITE)
         file_storage.write("bof", self.bow)
         file_storage.release()
 
@@ -93,7 +90,7 @@ class BoW:
         Gets path and loads the BoW from there.
 
         Args:
-            path (string): Path to directory with BoF.
+            path (string): Path where BoF located.
 
         Returns:
             void

@@ -1,6 +1,5 @@
 import os
 import cv2 as cv
-import numpy as np
 
 class Dataset:
     """
@@ -16,10 +15,9 @@ class Dataset:
         Returns:
             void
         """
-        self.paths = []
-        self.class_num = 0
+        self.classes = {}
 
-    def add(self, path):
+    def add(self, path, class_num):
         """
         Gets path to directory with images and add it to list of paths.
 
@@ -29,10 +27,12 @@ class Dataset:
         Returns:
             void
         """
-        self.paths.append(path)
-        self.class_num += 1
+        if self.classes.get(class_num) is None:
+            self.classes[class_num] = []
 
-    def remove(self, path):
+        self.classes[class_num].append(path)
+
+    def remove(self, path, class_num):
         """
         Gets path to directory with images and remove it to list of paths.
 
@@ -42,8 +42,10 @@ class Dataset:
         Returns:
             void
         """
-        self.paths.remove(path)
-        self.class_num -= 1
+        if self.classes.get(class_num) is None:
+            return
+
+        self.classes[class_num].remove(path)
 
     def load(self):
         """
@@ -58,12 +60,13 @@ class Dataset:
         """
         data, labels = [], []
 
-        for idx, path in enumerate(self.paths):
-            for filename in os.listdir(path):
-                img = cv.imread(os.path.join(path, filename), cv.IMREAD_GRAYSCALE)
+        for key in self.classes:
+            for path in self.classes[key]:
+                for filename in os.listdir(path):
+                    img = cv.imread(os.path.join(path, filename), cv.IMREAD_GRAYSCALE)
 
-                if img is not None:
-                    data.append(img)
-                    labels.append(self.class_num - idx - 1)
+                    if img is not None:
+                        data.append(img)
+                        labels.append(key)
 
-        return data, np.array(labels)
+        return data, labels
